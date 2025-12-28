@@ -22,5 +22,5 @@
   // コンパイル対象
   "include": ["src/**/*"],
   // コンパイル対象外
-  "exclude": ["node_module", "dist"],
+  "exclude": ["node_modules", "dist"],
 }
