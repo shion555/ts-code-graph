@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    // 出力するJavaScriptのバージョン
+    "module": "NodeNext",
+    // ES Modules形式で出力
+    "target": "ES2022",
+    // Node.jsのモジュール解決方式
+    "moduleResolution": "nodenext",
+    // コンパイル後のJSファイル出力先
+    "outDir": "./dist",
+    // ソースコードのルートディレクトリ
+    "rootDir": "./src",
+    // 厳格な型チェックを有効化
+    "strict": true,
+    // CommonJSモジュールをimportで読み込み可能
+    "esModuleInterop": true,
+    // node_modules内の型チェックをスキップ
+    "skipLibCheck": true,
+    // 型定義ファイル（`.d.ts`）を生成
+    "declaration": true,
+  },
+  // コンパイル対象
+  "include": ["src/**/*"],
+  // コンパイル対象外
+  "exclude": ["node_modules", "dist"],
+}

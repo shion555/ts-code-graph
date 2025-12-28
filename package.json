@@ -1,0 +1,45 @@
+{
+  "name": "ts-code-graph",
+  "version": "0.0.1",
+  "description": "Analyze TypeScript/Next.js codebase structure and visualize function call relationships",
+  "keywords": [
+    "typescript",
+    "ast",
+    "code-analysis",
+    "call-graph",
+    "nextjs",
+    "mcp"
+  ],
+  "homepage": "https://github.com/shion555/ts-code-graph#readme",
+  "bugs": {
+    "url": "https://github.com/shion555/ts-code-graph/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shion555/ts-code-graph.git"
+  },
+  "license": "MIT",
+  "author": "shion",
+  "type": "module",
+  "main": "dist/cli.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/cli.ts",
+    "poc": "tsx poc/parse-test.ts",
+    "prepare": "husky"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.5.0",
+    "commander": "^14.0.2",
+    "ts-morph": "^27.0.2"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^20.2.0",
+    "@commitlint/config-conventional": "^20.2.0",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^25.0.3",
+    "husky": "^9.1.7",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
+}
