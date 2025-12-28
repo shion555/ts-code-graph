@@ -1,14 +1,14 @@
-import { Project, SyntaxKind, SourceFile } from "ts-morph";
+import { Project, SyntaxKind, SourceFile, Node } from "ts-morph";
 import path from "path";
-import { CodeNode } from "../types.js";
+import { CodeNode, CodeEdge, ParseResult } from "../types.js";
 
 /**
- * TypeScriptプロジェクトを解析し、コードノードを抽出する
+ * TypeScriptプロジェクトを解析し、コードノードと呼び出し関係を抽出する
  *
  * @param projectPath - プロジェクトのルートディレクトリ
- * @return 抽出されたCodeNodeの配列
+ * @return 抽出されたCodeNode、CodeEdgeの配列
  */
-export function parseProject(projectPath: string): CodeNode[] {
+export function parseProject(projectPath: string): ParseResult {
   const absoluteProjectPath = path.resolve(projectPath);
 
   const project = new Project({
@@ -16,64 +16,65 @@ export function parseProject(projectPath: string): CodeNode[] {
   });
 
   const nodes: CodeNode[] = [];
+  const edges: CodeEdge[] = [];
 
   for (const sourceFile of project.getSourceFiles()) {
     // 各ファイルからノードを抽出
-    nodes.push(...extractNodes(sourceFile, absoluteProjectPath));
+    const result = extractNodesAndEdges(sourceFile, absoluteProjectPath);
+    nodes.push(...result.nodes);
+    edges.push(...result.edges);
   }
 
-  return nodes;
+  return { nodes, edges };
 }
 /**
- * ノードを抽出する
+ * ノード、エッジを抽出する
  * @param sourceFile - 対象ファイル
  * @param basePath - 基準パス
  * @return 抽出されたCodeNodeの配列
  */
-function extractNodes(sourceFile: SourceFile, basePath: string): CodeNode[] {
+function extractNodesAndEdges(
+  sourceFile: SourceFile,
+  basePath: string,
+): ParseResult {
   const nodes: CodeNode[] = [];
+  const edges: CodeEdge[] = [];
+
   const filePath = path.relative(basePath, sourceFile.getFilePath());
 
   // 関数定義を抽出
   for (const func of sourceFile.getFunctions()) {
+    const name = func.getName() || "(anonymous)";
+    const nodeId = `${filePath}:${name}`;
+
     nodes.push(
-      createNode(
-        func.getName() || "(anonymous)",
-        "function",
-        filePath,
-        func.getStartLineNumber(),
-      ),
+      createNode(name, "function", filePath, func.getStartLineNumber()),
     );
+    edges.push(...extractCalls(func, nodeId));
   }
 
   // アロー関数を抽出
   for (const variable of sourceFile.getVariableDeclarations()) {
     const initializer = variable.getInitializer();
     if (initializer?.getKind() === SyntaxKind.ArrowFunction) {
+      const name = variable.getName();
+      const nodeId = `${filePath}:${name}`;
+
       nodes.push(
-        createNode(
-          variable.getName(),
-          "function",
-          filePath,
-          variable.getStartLineNumber(),
-        ),
+        createNode(name, "function", filePath, variable.getStartLineNumber()),
       );
+      edges.push(...extractCalls(initializer, nodeId));
     }
   }
 
   // クラスを抽出
   for (const cls of sourceFile.getClasses()) {
-    nodes.push(
-      createNode(
-        cls.getName() || "(anonymous)",
-        "class",
-        filePath,
-        cls.getStartLineNumber(),
-      ),
-    );
+    const name = cls.getName() || "(anonymous)";
+
+    nodes.push(createNode(name, "class", filePath, cls.getStartLineNumber()));
   }
 
-  return nodes;
+  return { nodes, edges };
 }
 
 /**
@@ -98,4 +99,28 @@ function createNode(
     filePath,
     lineNumber,
   };
+}
+
+/**
+ * 関数/アロー関数内の呼び出しを抽出
+ *
+ * @param node ノード
+ * @param fromNodeId 呼び出しノード
+ */
+function extractCalls(node: Node, fromNodeId: string): CodeEdge[] {
+  const edges: CodeEdge[] = [];
+
+  const calls = node.getDescendantsOfKind(SyntaxKind.CallExpression);
+
+  for (const call of calls) {
+    const callsName = call.getExpression().getText();
+
+    edges.push({
+      fromNodeId,
+      toNodeId: callsName,
+      type: "calls",
+    });
+  }
+
+  return edges;
 }
