@@ -38,7 +38,7 @@ export function parseProject(projectPath: string): ParseResult {
  * ノード、エッジを抽出する
  * @param sourceFile - 対象ファイル
  * @param basePath - 基準パス
- * @return 抽出されたCodeNodeの配列
+ * @return 抽出されたCodeNodeとCodeEdge
  */
 function extractNodesAndEdges(
   sourceFile: SourceFile,
@@ -52,12 +52,15 @@ function extractNodesAndEdges(
   // 関数定義を抽出
   for (const func of sourceFile.getFunctions()) {
     const name = func.getName() || "(anonymous)";
-    const nodeId = `${filePath}:${name}`;
-
-    nodes.push(
-      createNode(name, "function", filePath, func.getStartLineNumber()),
+    const node = createNode(
+      name,
+      "function",
+      filePath,
+      func.getStartLineNumber(),
     );
-    edges.push(...extractCalls(func, nodeId, basePath));
+
+    nodes.push(node);
+    edges.push(...extractCalls(func, node.id, basePath));
   }
 
   // アロー関数を抽出
@@ -65,12 +68,15 @@ function extractNodesAndEdges(
     const initializer = variable.getInitializer();
     if (initializer?.getKind() === SyntaxKind.ArrowFunction) {
       const name = variable.getName();
-      const nodeId = `${filePath}:${name}`;
-
-      nodes.push(
-        createNode(name, "function", filePath, variable.getStartLineNumber()),
+      const node = createNode(
+        name,
+        "function",
+        filePath,
+        variable.getStartLineNumber(),
       );
-      edges.push(...extractCalls(initializer, nodeId, basePath));
+
+      nodes.push(node);
+      edges.push(...extractCalls(initializer, node.id, basePath));
     }
   }
 
