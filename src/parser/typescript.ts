@@ -1,4 +1,5 @@
 import { Project, SyntaxKind, SourceFile } from "ts-morph";
+import path from "path";
 import { CodeNode } from "../types.js";
 
 /**
@@ -8,15 +9,17 @@ import { CodeNode } from "../types.js";
  * @return 抽出されたCodeNodeの配列
  */
 export function parseProject(projectPath: string): CodeNode[] {
+  const absoluteProjectPath = path.resolve(projectPath);
+
   const project = new Project({
-    tsConfigFilePath: `${projectPath}/tsconfig.json`,
+    tsConfigFilePath: `${absoluteProjectPath}/tsconfig.json`,
   });
 
   const nodes: CodeNode[] = [];
 
   for (const sourceFile of project.getSourceFiles()) {
     // 各ファイルからノードを抽出
-    nodes.push(...extractNodes(sourceFile, projectPath));
+    nodes.push(...extractNodes(sourceFile, absoluteProjectPath));
   }
 
   return nodes;
@@ -29,7 +32,7 @@ export function parseProject(projectPath: string): CodeNode[] {
  */
 function extractNodes(sourceFile: SourceFile, basePath: string): CodeNode[] {
   const nodes: CodeNode[] = [];
-  const filePath = sourceFile.getFilePath();
+  const filePath = path.relative(basePath, sourceFile.getFilePath());
 
   // 関数定義を抽出
   for (const func of sourceFile.getFunctions()) {
