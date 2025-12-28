@@ -1,7 +1,10 @@
 import { describe, it, expect } from "vitest";
-import path from "path";
+import path, { dirname } from "path";
 import { parseProject } from "../../src/parser/typescript.js";
+import { fileURLToPath } from "url";
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 const fixturesPath = path.join(__dirname, "../fixtures/sample-project");
 
 describe("parseProject", () => {
