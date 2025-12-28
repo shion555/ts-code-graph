@@ -8,8 +8,6 @@
     "moduleResolution": "nodenext",
     // コンパイル後のJSファイル出力先
     "outDir": "./dist",
-    // ソースコードのルートディレクトリ
-    "rootDir": "./src",
     // 厳格な型チェックを有効化
     "strict": true,
     // CommonJSモジュールをimportで読み込み可能
@@ -20,7 +18,7 @@
     "declaration": true,
   },
   // コンパイル対象
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "test/**/*"],
   // コンパイル対象外
   "exclude": ["node_modules", "dist"],
 }
