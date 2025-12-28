@@ -1,0 +1,64 @@
+name: Issue Organizer
+
+on:
+  schedule:
+    - cron: '0 15 * * *' # 毎日00:00 JST (15:00 UTC)
+  workflow_dispatch: # 手動実行も可能
+
+jobs:
+  organize-issues:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Run Issue Organizer
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            ## タスク: Issue整理
+
+            ### Step 1: 未ラベルIssueの取得
+            `gh issue list --state open --label "" --limit 20` で未ラベルのIssueを取得。
+
+            ### Step 2: ラベル付け
+            各Issueに以下を判定してラベル付与:
+
+            **カテゴリ（1つ選択）:**
+            - `bug`: バグ報告、エラー
+            - `enhancement`: 新機能、改善提案
+            - `documentation`: ドキュメント関連
+            - `question`: 質問
+            - `refactor`: リファクタリング
+
+            **優先度（1つ選択）:**
+            - `priority: high`: セキュリティ、データ損失、完全に動作しない
+            - `priority: medium`: 部分的な機能障害
+            - `priority: low`: 軽微な問題、改善提案
+
+            コマンド: `gh issue edit <number> --add-label "category,priority: level"`
+
+            ### Step 3: 類似Issue検出
+            `gh search issues "<キーワード>" --repo ${{ github.repository }} --state all` で類似検索。
+            見つかった場合のみコメント投稿:
+
+            ```
+            gh issue comment <number> --body "**関連Issue検出**:
+            - #<number>: <title>
+            重複の場合は手動でクローズをご検討ください。"
+            ```
+
+            ### 注意
+            - 最大20件まで処理
+            - 既存ラベルは削除しない
+            - 自動クローズは行わない
+
+          claude_args: '--allowed-tools "Bash(gh issue list:*),Bash(gh issue view:*),Bash(gh issue edit:*),Bash(gh issue comment:*),Bash(gh search issues:*)"'
