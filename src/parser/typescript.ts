@@ -1,4 +1,11 @@
-import { Project, SyntaxKind, SourceFile, Node } from "ts-morph";
+import {
+  Project,
+  SyntaxKind,
+  SourceFile,
+  Node,
+  Identifier,
+  CallExpression,
+} from "ts-morph";
 import path from "path";
 import { CodeNode, CodeEdge, ParseResult } from "../types.js";
 
@@ -50,7 +57,7 @@ function extractNodesAndEdges(
     nodes.push(
       createNode(name, "function", filePath, func.getStartLineNumber()),
     );
-    edges.push(...extractCalls(func, nodeId));
+    edges.push(...extractCalls(func, nodeId, basePath));
   }
 
   // アロー関数を抽出
@@ -63,7 +70,7 @@ function extractNodesAndEdges(
       nodes.push(
         createNode(name, "function", filePath, variable.getStartLineNumber()),
       );
-      edges.push(...extractCalls(initializer, nodeId));
+      edges.push(...extractCalls(initializer, nodeId, basePath));
     }
   }
 
@@ -106,21 +113,68 @@ function createNode(
  *
  * @param node ノード
  * @param fromNodeId 呼び出しノード
+ * @param basePath 基準パス
  */
-function extractCalls(node: Node, fromNodeId: string): CodeEdge[] {
-  const edges: CodeEdge[] = [];
+function extractCalls(
+  node: Node,
+  fromNodeId: string,
+  basePath: string,
+): CodeEdge[] {
+  return node.getDescendantsOfKind(SyntaxKind.CallExpression).map((call) => ({
+    fromNodeId,
+    toNodeId: resolveCallTarget(call, basePath),
+    type: "calls" as const,
+  }));
+}
 
-  const calls = node.getDescendantsOfKind(SyntaxKind.CallExpression);
+/**
+ * CallExpressionからIdentifierを取得
+ *
+ * @param call
+ * @returns
+ */
+function getCallIdentifier(call: CallExpression): Identifier | undefined {
+  const expression = call.getExpression();
 
-  for (const call of calls) {
-    const callsName = call.getExpression().getText();
-
-    edges.push({
-      fromNodeId,
-      toNodeId: callsName,
-      type: "calls",
-    });
+  if (Node.isIdentifier(expression)) {
+    // 単純な関数呼び出し
+    return expression;
   }
 
-  return edges;
+  if (Node.isPropertyAccessExpression(expression)) {
+    // メソッド呼び出し
+    return expression.getNameNode();
+  }
+  return undefined;
+}
+
+/**
+ * 定義解決
+ *
+ * @param call
+ * @param basePath
+ * @returns
+ */
+function resolveCallTarget(call: CallExpression, basePath: string): string {
+  const callText = call.getExpression().getText();
+  const identifier = getCallIdentifier(call);
+
+  if (!identifier) {
+    return `@unknown:${callText}`;
+  }
+
+  const definitions = identifier.getDefinitions();
+  if (definitions.length === 0) {
+    return `@unknown:${callText}`;
+  }
+
+  const def = definitions[0];
+  const defFilePath = def.getSourceFile().getFilePath();
+  const relativePath = path.relative(basePath, defFilePath);
+
+  if (relativePath.includes("node_modules")) {
+    return `@external:${callText}`;
+  }
+
+  return `${relativePath}:${def.getName()}`;
 }
