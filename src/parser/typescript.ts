@@ -1,23 +1,22 @@
-import { Project, SyntaxKind, SourceFile, ExpressionStatement } from "ts-morph";
+import { Project, SyntaxKind, SourceFile } from "ts-morph";
 import { CodeNode } from "../types.js";
-import { create } from "domain";
 
 /**
  * TypeScriptプロジェクトを解析し、コードノードを抽出する
  *
- * @param ProjectPath - プロジェクトのルートディレクトリ
+ * @param projectPath - プロジェクトのルートディレクトリ
  * @return 抽出されたCodeNodeの配列
  */
-export function parseProject(ProjectPath: string): CodeNode[] {
+export function parseProject(projectPath: string): CodeNode[] {
   const project = new Project({
-    tsConfigFilePath: `${ProjectPath}/tsConfig.json`,
+    tsConfigFilePath: `${projectPath}/tsconfig.json`,
   });
 
   const nodes: CodeNode[] = [];
 
   for (const sourceFile of project.getSourceFiles()) {
     // 各ファイルからノードを抽出
-    nodes.push(...extractNodes(sourceFile, ProjectPath));
+    nodes.push(...extractNodes(sourceFile, projectPath));
   }
 
   return nodes;
@@ -46,8 +45,8 @@ function extractNodes(sourceFile: SourceFile, basePath: string): CodeNode[] {
 
   // アロー関数を抽出
   for (const variable of sourceFile.getVariableDeclarations()) {
-    const initializar = variable.getInitializer();
-    if (initializar?.getKind() === SyntaxKind.ArrowFunction) {
+    const initializer = variable.getInitializer();
+    if (initializer?.getKind() === SyntaxKind.ArrowFunction) {
       nodes.push(
         createNode(
           variable.getName(),
