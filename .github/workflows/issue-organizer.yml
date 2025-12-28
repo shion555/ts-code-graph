@@ -19,34 +19,59 @@ jobs:
         with:
           fetch-depth: 1
 
+      - name: Check unlabeled issues
+        id: check-issues
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          count=$(gh issue list --state open --label "" --limit 1 --json number | jq length)
+          echo "count=$count" >> $GITHUB_OUTPUT
+          if [ "$count" -eq 0 ]; then
+            echo "処理対象のIssueがありません"
+          fi
+
       - name: Run Issue Organizer
+        if: steps.check-issues.outputs.count != '0'
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: |
             ## タスク: Issue整理
 
-            ### Step 1: 未ラベルIssueの取得
-            `gh issue list --state open --label "" --limit 20` で未ラベルのIssueを取得。
-
-            ### Step 2: ラベル付け
-            各Issueに以下を判定してラベル付与:
+            ### Step 1: ラベル付け
+            `gh issue list --state open --label "" --limit 20` で未ラベルのIssueを取得し、各Issueに以下を判定してラベル付与:
 
             **カテゴリ（1つ選択）:**
-            - `bug`: バグ報告、エラー
-            - `enhancement`: 新機能、改善提案
-            - `documentation`: ドキュメント関連
-            - `question`: 質問
-            - `refactor`: リファクタリング
+            - `bug`: 期待される動作と異なる、エラー発生、クラッシュ
+              - 例: エラーメッセージ表示、機能が動作しない、誤った結果
+            - `enhancement`: 新機能追加、既存機能の拡張・改善
+              - 例: 新しいオプション追加、パフォーマンス改善の要望
+            - `documentation`: READMEやコメントの修正・追加
+            - `question`: 使い方の質問、仕様の確認
+            - `refactor`: 動作を変えずにコード品質を改善
+              - 例: コード整理、命名改善、重複削除
 
             **優先度（1つ選択）:**
-            - `priority: high`: セキュリティ、データ損失、完全に動作しない
-            - `priority: medium`: 部分的な機能障害
-            - `priority: low`: 軽微な問題、改善提案
+            - `priority: high`: 以下のいずれかに該当
+              - セキュリティ脆弱性
+              - データ損失・破損の可能性
+              - コア機能が完全に使用不可
+            - `priority: medium`: 以下のいずれかに該当
+              - 一部機能が正常に動作しない
+              - ワークアラウンドはあるが不便
+            - `priority: low`: 以下のいずれかに該当
+              - 軽微なUI/UXの問題
+              - 新機能の提案
+              - ドキュメントの改善
+
+            **判定ガイドライン:**
+            - 迷った場合: bug > enhancement、medium > low を選択
+            - 複数カテゴリに該当する場合: 主目的で判定
+            - タイトルだけでなく本文も確認して判定
 
             コマンド: `gh issue edit <number> --add-label "category,priority: level"`
 
-            ### Step 3: 類似Issue検出
+            ### Step 2: 類似Issue検出
             `gh search issues "<キーワード>" --repo ${{ github.repository }} --state all` で類似検索。
             見つかった場合のみコメント投稿:
 
@@ -61,4 +86,4 @@ jobs:
             - 既存ラベルは削除しない
             - 自動クローズは行わない
 
-          claude_args: '--allowed-tools "Bash(gh issue list:*),Bash(gh issue view:*),Bash(gh issue edit:*),Bash(gh issue comment:*),Bash(gh search issues:*)"'
+          claude_args: '--allowed-tools "Bash(gh issue list:*),Bash(gh issue view:*),Bash(gh issue edit:*--add-label*),Bash(gh issue comment:*),Bash(gh search issues:*)"'
