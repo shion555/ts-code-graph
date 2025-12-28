@@ -86,4 +86,4 @@ jobs:
             - 既存ラベルは削除しない
             - 自動クローズは行わない
 
-          claude_args: '--allowed-tools "Bash(gh issue list:*),Bash(gh issue view:*),Bash(gh issue edit:*--add-label*),Bash(gh issue comment:*),Bash(gh search issues:*)"'
+          claude_args: '--allowed-tools "Bash(gh issue list:*),Bash(gh issue view:*),Bash(gh issue edit:*　--add-label　*),Bash(gh issue comment:*),Bash(gh search issues:*)"'
