@@ -3,25 +3,16 @@ name: Claude Code Review
 on:
   pull_request:
     types: [opened, synchronize]
-    # Optional: Only run on specific file changes
-    # paths:
-    #   - "src/**/*.ts"
-    #   - "src/**/*.tsx"
-    #   - "src/**/*.js"
-    #   - "src/**/*.jsx"
+    paths:
+      - "src/**/*.ts"
+      - "tests/**/*.ts"
 
 jobs:
   claude-review:
-    # Optional: Filter by PR author
-    # if: |
-    #   github.event.pull_request.user.login == 'external-contributor' ||
-    #   github.event.pull_request.user.login == 'new-developer' ||
-    #   github.event.pull_request.author_association == 'FIRST_TIME_CONTRIBUTOR'
-
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pull-requests: read
+      pull-requests: write
       issues: read
       id-token: write
 
@@ -40,18 +31,40 @@ jobs:
             REPO: ${{ github.repository }}
             PR NUMBER: ${{ github.event.pull_request.number }}
 
-            Please review this pull request and provide feedback on:
-            - Code quality and best practices
-            - Potential bugs or issues
-            - Performance considerations
-            - Security concerns
-            - Test coverage
+            Please review this pull request following the guidelines in CLAUDE.md. Provide constructive feedback on the following aspects:
 
-            Use the repository's CLAUDE.md for guidance on style and conventions. Be constructive and helpful in your feedback.
+            ## Review Criteria
 
-            Use `gh pr comment` with your Bash tool to leave your review as a comment on the PR.
+            ### 1. Code Quality
+            - Adherence to Conventional Commits format
+            - Naming conventions and design patterns
+            - Separation of concerns (parser/, cli.ts, types.ts roles)
 
-          # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
-          # or https://code.claude.com/docs/en/cli-reference for available options
+            ### 2. Bug Detection
+            - Edge cases in ts-morph AST parsing
+            - better-sqlite3 query safety
+            - Proper error handling
+
+            ### 3. Performance
+            - Memory efficiency for large-scale AST parsing
+            - SQLite query optimization
+
+            ### 4. Security
+            - CLI input validation
+            - SQL injection prevention
+
+            ### 5. Test Coverage
+            - Unit test completeness
+            - Edge case coverage
+
+            ## Comment Format
+            Categorize your feedback as follows:
+            - 🚨 **Must Fix**: Critical issues that must be addressed
+            - ⚠️ **Suggested**: Recommended improvements
+            - 💡 **Note**: Helpful information or tips
+
+            **IMPORTANT: All review comments MUST be written in Japanese.**
+
+            Use `gh pr comment` to post your review on the PR.
+
           claude_args: '--allowed-tools "Bash(gh issue view:*),Bash(gh search:*),Bash(gh issue list:*),Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr list:*)"'
-
