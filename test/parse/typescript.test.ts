@@ -8,7 +8,7 @@ const __dirname = dirname(__filename);
 const fixturesPath = path.join(__dirname, "../fixtures/sample-project");
 
 describe("parseProject", () => {
-  const nodes = parseProject(fixturesPath);
+  const { nodes, edges } = parseProject(fixturesPath);
 
   it("関数宣言の抽出ができる", () => {
     const greet = nodes.find((n) => n.name === "greet");
