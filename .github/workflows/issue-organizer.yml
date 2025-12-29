@@ -24,7 +24,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          count=$(gh issue list --state open --label "" --limit 1 --json number | jq length)
+          count=$(gh issue list --state open --search "no:label" --limit 1 --json number | jq length)
           echo "count=$count" >> $GITHUB_OUTPUT
           if [ "$count" -eq 0 ]; then
             echo "処理対象のIssueがありません"
@@ -39,16 +39,16 @@ jobs:
             ## タスク: Issue整理
 
             ### Step 1: ラベル付け
-            `gh issue list --state open --label "" --limit 20` で未ラベルのIssueを取得し、各Issueに以下を判定してラベル付与:
+            `gh issue list --state open --search "no:label" --limit 20` で未ラベルのIssueを取得し、各Issueに以下を判定してラベル付与:
 
             **カテゴリ（1つ選択）:**
-            - `bug`: 期待される動作と異なる、エラー発生、クラッシュ
+            - `type: bug`: 期待される動作と異なる、エラー発生、クラッシュ
               - 例: エラーメッセージ表示、機能が動作しない、誤った結果
-            - `enhancement`: 新機能追加、既存機能の拡張・改善
+            - `type: feature`: 新機能追加、既存機能の拡張・改善
               - 例: 新しいオプション追加、パフォーマンス改善の要望
-            - `documentation`: READMEやコメントの修正・追加
+            - `type: docs`: READMEやコメントの修正・追加
             - `question`: 使い方の質問、仕様の確認
-            - `refactor`: 動作を変えずにコード品質を改善
+            - `type: refactor`: 動作を変えずにコード品質を改善
               - 例: コード整理、命名改善、重複削除
 
             **優先度（1つ選択）:**
@@ -65,7 +65,7 @@ jobs:
               - ドキュメントの改善
 
             **判定ガイドライン:**
-            - 迷った場合: bug > enhancement、medium > low を選択
+            - 迷った場合: type: bug > type: feature、medium > low を選択
             - 複数カテゴリに該当する場合: 主目的で判定
             - タイトルだけでなく本文も確認して判定
 
