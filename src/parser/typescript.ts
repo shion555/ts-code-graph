@@ -93,11 +93,11 @@ function extractNodesAndEdges(
 /**
  * ノード作成
  *
- * @param name 名前
- * @param type タイプ
- * @param filePath ファイルパス
- * @param lineNumber 行番号
- * @returns
+ * @param name - 名前
+ * @param type - タイプ
+ * @param filePath - ファイルパス
+ * @param lineNumber - 行番号
+ * @returns 作成されたCodeNode
  */
 function createNode(
   name: string,
@@ -136,8 +136,8 @@ function extractCalls(
 /**
  * CallExpressionからIdentifierを取得
  *
- * @param call
- * @returns
+ * @param call - 呼び出し式
+ * @returns 取得したIdentifier、取得できない場合はundefined
  */
 function getCallIdentifier(call: CallExpression): Identifier | undefined {
   const expression = call.getExpression();
@@ -157,9 +157,9 @@ function getCallIdentifier(call: CallExpression): Identifier | undefined {
 /**
  * 定義解決
  *
- * @param call
- * @param basePath
- * @returns
+ * @param call - 呼び出し式
+ * @param basePath - 基準パス
+ * @returns 解決されたノードID
  */
 function resolveCallTarget(call: CallExpression, basePath: string): string {
   const callText = call.getExpression().getText();
