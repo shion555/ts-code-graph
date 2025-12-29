@@ -49,7 +49,7 @@ export function parseProject(projectPath: string): ParseResult {
  */
 function extractNodesAndEdges(
   sourceFile: SourceFile,
-  basePath: string,
+  basePath: string
 ): ParseResult {
   const nodes: CodeNode[] = [];
   const edges: CodeEdge[] = [];
@@ -63,7 +63,7 @@ function extractNodesAndEdges(
       name,
       "function",
       filePath,
-      func.getStartLineNumber(),
+      func.getStartLineNumber()
     );
 
     nodes.push(node);
@@ -79,7 +79,7 @@ function extractNodesAndEdges(
         name,
         "function",
         filePath,
-        variable.getStartLineNumber(),
+        variable.getStartLineNumber()
       );
 
       nodes.push(node);
@@ -110,7 +110,7 @@ function createNode(
   name: string,
   type: CodeNode["type"],
   filePath: string,
-  lineNumber: number,
+  lineNumber: number
 ): CodeNode {
   return {
     id: `${filePath}:${name}`,
@@ -132,7 +132,7 @@ function createNode(
 function extractCalls(
   node: Node,
   fromNodeId: string,
-  basePath: string,
+  basePath: string
 ): CodeEdge[] {
   return node.getDescendantsOfKind(SyntaxKind.CallExpression).map((call) => ({
     fromNodeId,
