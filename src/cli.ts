@@ -33,6 +33,7 @@ program
   .command("index <directory>")
   .description("Index a TypeScript project")
   .action(async (directory: string) => {
+    let repository: CodeGraphRepository | null = null;
     try {
       const validatedDir = validateDirectory(directory);
       console.error(`Indexing: ${validatedDir}`);
@@ -42,7 +43,7 @@ program
 
       // DBに保存
       const db = createDatabase(validatedDir);
-      const repository = new CodeGraphRepository(db);
+      repository = new CodeGraphRepository(db);
 
       repository.clear();
       repository.insertNodes(nodes);
@@ -57,13 +58,13 @@ program
         },
       };
 
-      repository.close();
-
       console.log(JSON.stringify(result, null, 2));
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       console.error(JSON.stringify({ success: false, error: message }));
       process.exit(1);
+    } finally {
+      repository?.close();
     }
   });
 
@@ -72,26 +73,27 @@ program
   .description("Query function/class relationships")
   .option("-d, --directory <path>", "Project directory", ".")
   .action(async (name: string, options: { directory: string }) => {
+    let repository: CodeGraphRepository | null = null;
     try {
       const validatedDir = validateDirectory(options.directory);
       const db = createDatabase(validatedDir);
-      const repository = new CodeGraphRepository(db);
+      repository = new CodeGraphRepository(db);
 
       const nodes = repository.findNodesByName(name);
 
       const matches = nodes.map((node) => ({
         node,
-        callers: repository.findCallers(node.id),
-        callees: repository.findCallees(node.id),
+        callers: repository!.findCallers(node.id),
+        callees: repository!.findCallees(node.id),
       }));
-
-      repository.close();
 
       console.log(JSON.stringify({ matches }, null, 2));
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       console.error(JSON.stringify({ success: false, error: message }));
       process.exit(1);
+    } finally {
+      repository?.close();
     }
   });
 
