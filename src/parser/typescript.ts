@@ -7,6 +7,7 @@ import {
   CallExpression,
 } from "ts-morph";
 import path from "path";
+import fs from "fs";
 import { CodeNode, CodeEdge, ParseResult } from "../types.js";
 
 /**
@@ -17,9 +18,14 @@ import { CodeNode, CodeEdge, ParseResult } from "../types.js";
  */
 export function parseProject(projectPath: string): ParseResult {
   const absoluteProjectPath = path.resolve(projectPath);
+  const tsConfigPath = path.join(absoluteProjectPath, "tsconfig.json");
+
+  if (!fs.existsSync(tsConfigPath)) {
+    throw new Error(`tsconfig.jsonが見つかりません: ${tsConfigPath}`);
+  }
 
   const project = new Project({
-    tsConfigFilePath: `${absoluteProjectPath}/tsconfig.json`,
+    tsConfigFilePath: tsConfigPath,
   });
 
   const nodes: CodeNode[] = [];
