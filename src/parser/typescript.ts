@@ -13,7 +13,7 @@ import { CodeNode, CodeEdge, ParseResult } from "../types.js";
  * TypeScriptプロジェクトを解析し、コードノードと呼び出し関係を抽出する
  *
  * @param projectPath - プロジェクトのルートディレクトリ
- * @return 抽出されたCodeNode、CodeEdgeの配列
+ * @returns 抽出されたCodeNodeとCodeEdgeを含むParseResult
  */
 export function parseProject(projectPath: string): ParseResult {
   const absoluteProjectPath = path.resolve(projectPath);
@@ -36,9 +36,10 @@ export function parseProject(projectPath: string): ParseResult {
 }
 /**
  * ノード、エッジを抽出する
+ *
  * @param sourceFile - 対象ファイル
  * @param basePath - 基準パス
- * @return 抽出されたCodeNodeとCodeEdge
+ * @returns 抽出されたCodeNodeとCodeEdgeを含むParseResult
  */
 function extractNodesAndEdges(
   sourceFile: SourceFile,
@@ -117,9 +118,10 @@ function createNode(
 /**
  * 関数/アロー関数内の呼び出しを抽出
  *
- * @param node ノード
- * @param fromNodeId 呼び出しノード
- * @param basePath 基準パス
+ * @param node - 解析対象のノード
+ * @param fromNodeId - 呼び出し元ノードID
+ * @param basePath - 基準パス
+ * @returns 抽出されたCodeEdgeの配列
  */
 function extractCalls(
   node: Node,
