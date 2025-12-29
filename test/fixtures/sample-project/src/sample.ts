@@ -14,3 +14,10 @@ export class Calculator {
     return a * b;
   }
 }
+
+// 同一ファイル内の呼び出し
+export function greetWithSum(name: string, a: number, b: number): string {
+  const greeting = greet(name);
+  const sum = add(a, b);
+  return `${greeting}, sum: ${sum}`;
+}
