@@ -53,7 +53,7 @@ export class CodeGraphRepository {
    */
   insertEdges(edges: CodeEdge[]): void {
     const stmt = this.db.prepare(`
-      INSERT INTO edges (from_node_id, to_node_id, type)
+      INSERT OR IGNORE INTO edges (from_node_id, to_node_id, type)
       VALUES (@fromNodeId, @toNodeId, @type)
     `);
 

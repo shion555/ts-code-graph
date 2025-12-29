@@ -51,7 +51,9 @@ function initializeSchema(db: Database.Database): void {
       from_node_id TEXT NOT NULL,
       to_node_id TEXT NOT NULL,
       type TEXT NOT NULL,
-      FOREIGN KEY (from_node_id) REFERENCES nodes(id)
+      FOREIGN KEY (from_node_id) REFERENCES nodes(id),
+      FOREIGN KEY (to_node_id) REFERENCES nodes(id),
+      UNIQUE (from_node_id, to_node_id, type)
     );
 
     CREATE INDEX IF NOT EXISTS idx_nodes_name ON nodes(name);
