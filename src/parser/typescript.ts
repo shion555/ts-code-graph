@@ -259,7 +259,7 @@ function resolveCallTarget(call: CallExpression, basePath: string): string {
   const defFilePath = def.getSourceFile().getFilePath();
   const relativePath = path.relative(basePath, defFilePath);
 
-  if (relativePath.includes("node_modules")) {
+  if (def.getSourceFile().isFromExternalLibrary()) {
     return `@external:${callText}`;
   }
 
