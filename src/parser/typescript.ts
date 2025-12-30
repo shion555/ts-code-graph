@@ -33,6 +33,7 @@ export function parseProject(projectPath: string): ParseResult {
   const externalCalls: ExternalCall[] = [];
 
   for (const sourceFile of project.getSourceFiles()) {
+    if (sourceFile.isFromExternalLibrary()) continue;
     // 各ファイルからノードを抽出
     const result = extractNodesAndEdges(sourceFile, absoluteProjectPath);
     nodes.push(...result.nodes);
