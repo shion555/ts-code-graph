@@ -63,35 +63,38 @@ describe("parseProject", () => {
     });
   });
 
-describe("edgesの抽出（同一ファイル内からの呼び出し）", () => {
-  it("greetWithSumからgreetへの呼び出しを検出する", () => {
-    const edge = findEdge(
-      "src/sample.ts:19:greetWithSum",
-      "src/sample.ts:2:greet"
-    );
+  describe("edgesの抽出（同一ファイル内からの呼び出し）", () => {
+    it("greetWithSumからgreetへの呼び出しを検出する", () => {
+      const edge = findEdge(
+        "src/sample.ts:19:greetWithSum",
+        "src/sample.ts:2:greet"
+      );
 
       expect(edge.type).toBe("calls");
     });
 
-  it("greetWithSumからaddへの呼び出しを検出する", () => {
-    const edge = findEdge(
-      "src/sample.ts:19:greetWithSum",
-      "src/sample.ts:7:add"
-    );
+    it("greetWithSumからaddへの呼び出しを検出する", () => {
+      const edge = findEdge(
+        "src/sample.ts:19:greetWithSum",
+        "src/sample.ts:7:add"
+      );
 
       expect(edge.type).toBe("calls");
     });
   });
 
-describe("edgesの抽出（import経由の呼び出し）", () => {
-  it("sayHelloからgreetへの呼び出しを検出する", () => {
-    const edge = findEdge("src/caller.ts:3:sayHello", "src/sample.ts:2:greet");
+  describe("edgesの抽出（import経由の呼び出し）", () => {
+    it("sayHelloからgreetへの呼び出しを検出する", () => {
+      const edge = findEdge(
+        "src/caller.ts:3:sayHello",
+        "src/sample.ts:2:greet"
+      );
 
       expect(edge.type).toBe("calls");
     });
 
-  it("calculateからaddへの呼び出しを検出する", () => {
-    const edge = findEdge("src/caller.ts:7:calculate", "src/sample.ts:7:add");
+    it("calculateからaddへの呼び出しを検出する", () => {
+      const edge = findEdge("src/caller.ts:7:calculate", "src/sample.ts:7:add");
 
       expect(edge.type).toBe("calls");
     });
