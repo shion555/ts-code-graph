@@ -50,7 +50,7 @@ describe("parseProject", () => {
   });
 
   it("正しいノード数を抽出する", () => {
-    expect(nodes.length).toBe(6);
+    expect(nodes.length).toBe(11);
   });
 });
 
