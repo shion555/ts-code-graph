@@ -69,26 +69,21 @@ function extractNodesAndEdges(
   sourceFile: SourceFile,
   basePath: string
 ): ParseResult {
-  const nodes: CodeNode[] = [];
-  const edges: CodeEdge[] = [];
-  const externalCalls: ExternalCall[] = [];
-
+  const result: ParseResult = { nodes: [], edges: [], externalCalls: [] };
   const filePath = path.relative(basePath, sourceFile.getFilePath());
 
   // 関数定義を抽出
   for (const func of sourceFile.getFunctions()) {
     const name = func.getName() || "(anonymous)";
-    const node = createNode(
+    addNodeWithCalls(
+      result,
       name,
       "function",
       filePath,
-      func.getStartLineNumber()
+      func.getStartLineNumber(),
+      func,
+      basePath
     );
-
-    nodes.push(node);
-    const callResult = extractCalls(func, node.id, basePath);
-    edges.push(...callResult.edges);
-    externalCalls.push(...callResult.externalCalls);
   }
 
   // アロー関数を抽出
@@ -96,28 +91,27 @@ function extractNodesAndEdges(
     const initializer = variable.getInitializer();
     if (initializer?.getKind() === SyntaxKind.ArrowFunction) {
       const name = variable.getName();
-      const node = createNode(
+      addNodeWithCalls(
+        result,
         name,
         "function",
         filePath,
-        variable.getStartLineNumber()
+        variable.getStartLineNumber(),
+        initializer,
+        basePath
       );
-
-      nodes.push(node);
-      const callResult = extractCalls(initializer, node.id, basePath);
-      edges.push(...callResult.edges);
-      externalCalls.push(...callResult.externalCalls);
     }
   }
 
   // クラスを抽出
   for (const cls of sourceFile.getClasses()) {
     const name = cls.getName() || "(anonymous)";
-
-    nodes.push(createNode(name, "class", filePath, cls.getStartLineNumber()));
+    result.nodes.push(
+      createNode(name, "class", filePath, cls.getStartLineNumber())
+    );
   }
 
-  return { nodes, edges, externalCalls };
+  return result;
 }
 
 /**
@@ -142,6 +136,34 @@ function createNode(
     filePath,
     lineNumber,
   };
+}
+
+/**
+ * ノード作成と呼び出し抽出を行う共通処理
+ *
+ * @param result - 結果を格納するParseResult
+ * @param name - 名前
+ * @param type - タイプ
+ * @param filePath - ファイルパス
+ * @param lineNumber - 行番号
+ * @param body - 解析対象のノード
+ * @param basePath - 基準パス
+ */
+function addNodeWithCalls(
+  result: ParseResult,
+  name: string,
+  type: CodeNode["type"],
+  filePath: string,
+  lineNumber: number,
+  body: Node,
+  basePath: string
+): void {
+  const node = createNode(name, type, filePath, lineNumber);
+  result.nodes.push(node);
+
+  const callResult = extractCalls(body, node.id, basePath);
+  result.edges.push(...callResult.edges);
+  result.externalCalls.push(...callResult.externalCalls);
 }
 
 /**
