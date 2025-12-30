@@ -59,7 +59,7 @@ describe("parseProject", () => {
     });
 
     it("正しいノード数を抽出する", () => {
-      expect(nodes.length).toBe(11);
+      expect(nodes.length).toBe(12);
     });
   });
 
@@ -110,5 +110,25 @@ describe("parseProject エラーケース", () => {
     expect(() => parseProject(nonExistentPath)).toThrow(
       /tsconfig\.jsonが見つかりません/
     );
+  });
+});
+
+describe("外部ライブラリの除外", () => {
+  it("node_modules配下のファイルを解析対象から除外する", () => {
+    const result = parseProject(fixturesPath);
+    const nodeModulesNodes = result.nodes.filter((n) =>
+      n.filePath.includes("node_modules")
+    );
+    expect(nodeModulesNodes.length).toBe(0);
+  });
+
+  it("外部ライブラリへの呼び出しをexternalCallsとして記録する", () => {
+    const result = parseProject(fixturesPath);
+    const externalCall = result.externalCalls.find(
+      (ec) =>
+        ec.callName.includes("mockFunction") ||
+        ec.callText.includes("mockFunction")
+    );
+    expect(externalCall).toBeDefined();
   });
 });

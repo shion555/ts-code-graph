@@ -33,6 +33,7 @@ export function parseProject(projectPath: string): ParseResult {
   const externalCalls: ExternalCall[] = [];
 
   for (const sourceFile of project.getSourceFiles()) {
+    if (sourceFile.isFromExternalLibrary()) continue;
     // 各ファイルからノードを抽出
     const result = extractNodesAndEdges(sourceFile, absoluteProjectPath);
     nodes.push(...result.nodes);
@@ -258,7 +259,7 @@ function resolveCallTarget(call: CallExpression, basePath: string): string {
   const defFilePath = def.getSourceFile().getFilePath();
   const relativePath = path.relative(basePath, defFilePath);
 
-  if (relativePath.includes("node_modules")) {
+  if (def.getSourceFile().isFromExternalLibrary()) {
     return `@external:${callText}`;
   }
 
