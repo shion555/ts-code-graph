@@ -25,7 +25,6 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "dev": "tsx src/cli.ts",
-    "poc": "tsx poc/parse-test.ts",
     "prepare": "husky",
     "test": "vitest",
     "lint": "eslint src test",
