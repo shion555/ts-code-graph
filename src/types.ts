@@ -19,11 +19,6 @@ export interface ExternalCall {
   callText: string;
 }
 
-export interface CallGraph {
-  nodes: Map<string, CodeNode>;
-  edges: CodeEdge[];
-}
-
 export interface ParseResult {
   nodes: CodeNode[];
   edges: CodeEdge[];
