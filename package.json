@@ -32,12 +32,15 @@
     "lint:fix": "eslint src test --fix",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\" \"test/**/*.ts\"",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "mcp": "tsx src/mcp/server.ts"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.25.1",
     "better-sqlite3": "^12.5.0",
     "commander": "^14.0.2",
-    "ts-morph": "^27.0.2"
+    "ts-morph": "^27.0.2",
+    "zod": "^4.2.1"
   },
   "devDependencies": {
     "@commitlint/cli": "^20.2.0",
