@@ -5,7 +5,7 @@ on:
     types: [opened, synchronize]
     paths:
       - "src/**/*.ts"
-      - "tests/**/*.ts"
+      - "test/**/*.ts"
 
 jobs:
   claude-review:
