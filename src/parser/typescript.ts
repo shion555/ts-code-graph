@@ -75,8 +75,7 @@ function extractNodesAndEdges(
   // 関数定義を抽出
   for (const func of sourceFile.getFunctions()) {
     const name = func.getName() || "(anonymous)";
-    addNodeWithCalls(
-      result,
+    const partialResult = addNodeWithCalls(
       name,
       "function",
       filePath,
@@ -84,6 +83,9 @@ function extractNodesAndEdges(
       func,
       basePath
     );
+    result.nodes.push(...partialResult.nodes);
+    result.edges.push(...partialResult.edges);
+    result.externalCalls.push(...partialResult.externalCalls);
   }
 
   // アロー関数を抽出
@@ -91,8 +93,7 @@ function extractNodesAndEdges(
     const initializer = variable.getInitializer();
     if (initializer?.getKind() === SyntaxKind.ArrowFunction) {
       const name = variable.getName();
-      addNodeWithCalls(
-        result,
+      const partialResult = addNodeWithCalls(
         name,
         "function",
         filePath,
@@ -100,6 +101,9 @@ function extractNodesAndEdges(
         initializer,
         basePath
       );
+      result.nodes.push(...partialResult.nodes);
+      result.edges.push(...partialResult.edges);
+      result.externalCalls.push(...partialResult.externalCalls);
     }
   }
 
@@ -141,29 +145,30 @@ function createNode(
 /**
  * ノード作成と呼び出し抽出を行う共通処理
  *
- * @param result - 結果を格納するParseResult
  * @param name - 名前
  * @param type - タイプ
  * @param filePath - ファイルパス
  * @param lineNumber - 行番号
  * @param body - 解析対象のノード
  * @param basePath - 基準パス
+ * @returns 抽出されたCodeNode、CodeEdge、ExternalCallを含むParseResult
  */
 function addNodeWithCalls(
-  result: ParseResult,
   name: string,
   type: CodeNode["type"],
   filePath: string,
   lineNumber: number,
   body: Node,
   basePath: string
-): void {
+): ParseResult {
   const node = createNode(name, type, filePath, lineNumber);
-  result.nodes.push(node);
-
   const callResult = extractCalls(body, node.id, basePath);
-  result.edges.push(...callResult.edges);
-  result.externalCalls.push(...callResult.externalCalls);
+
+  return {
+    nodes: [node],
+    edges: callResult.edges,
+    externalCalls: callResult.externalCalls,
+  };
 }
 
 /**
