@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, expect, afterAll } from "vitest";
 import { execSync } from "child_process";
 import path, { dirname } from "path";
 import fs from "fs";
@@ -12,7 +12,11 @@ const cliPath = path.join(__dirname, "../../src/cli.ts");
 /**
  * CLIを実行してJSON結果を取得
  */
-function runCli(args: string): { stdout: string; stderr: string; exitCode: number } {
+function runCli(args: string): {
+  stdout: string;
+  stderr: string;
+  exitCode: number;
+} {
   try {
     const stdout = execSync(`npx tsx ${cliPath} ${args}`, {
       encoding: "utf-8",
@@ -20,7 +24,11 @@ function runCli(args: string): { stdout: string; stderr: string; exitCode: numbe
     });
     return { stdout, stderr: "", exitCode: 0 };
   } catch (error: unknown) {
-    const execError = error as { stdout?: string; stderr?: string; status?: number };
+    const execError = error as {
+      stdout?: string;
+      stderr?: string;
+      status?: number;
+    };
     return {
       stdout: execError.stdout || "",
       stderr: execError.stderr || "",
@@ -90,7 +98,9 @@ describe("CLI", () => {
     });
 
     it("存在しない関数は空の結果を返す", () => {
-      const { stdout, exitCode } = runCli(`query nonExistent -d ${fixturesPath}`);
+      const { stdout, exitCode } = runCli(
+        `query nonExistent -d ${fixturesPath}`
+      );
       const result = JSON.parse(stdout);
 
       expect(exitCode).toBe(0);
