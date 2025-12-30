@@ -7,7 +7,7 @@ import {
   getDbPath,
   CodeGraphRepository,
 } from "../../src/db/index.js";
-import { CodeNode, CodeEdge } from "../../src/types.js";
+import { CodeNode, CodeEdge, ExternalCall } from "../../src/types.js";
 
 describe("Database", () => {
   let tempDir: string;
@@ -151,6 +151,67 @@ describe("Database", () => {
         expect(repository.countNodes()).toBe(0);
         expect(repository.countEdges()).toBe(0);
       });
+    });
+
+    describe("ExternalCall関連メソッド", () => {
+      const sampleExternalCalls: ExternalCall[] = [
+        {
+          fromNodeId: "src/api.ts:login",
+          callName: "console.log",
+          callText: "console.log",
+        },
+        {
+          fromNodeId: "src/api.ts:login",
+          callName: "path.join",
+          callText: "path.join",
+        },
+        {
+          fromNodeId: "src/auth.ts:validateUser",
+          callName: "bcrypt.compare",
+          callText: "bcrypt.compare",
+        },
+      ];
+
+      beforeEach(() => {
+        repository.insertNodes(sampleNodes);
+      });
+
+      it("外部呼び出しを挿入して取得できる", () => {
+        repository.insertExternalCalls(sampleExternalCalls);
+
+        const calls = repository.findExternalCallsByNode("src/api.ts:login");
+
+        expect(calls).toHaveLength(2);
+        expect(calls.map((c) => c.callName)).toContain("console.log");
+        expect(calls.map((c) => c.callName)).toContain("path.join");
+      });
+
+      it("外部呼び出し数を取得できる", () => {
+        repository.insertExternalCalls(sampleExternalCalls);
+
+        expect(repository.countExternalCalls()).toBe(3);
+      });
+
+      it("存在しないノードの外部呼び出しは空配列を返す", () => {
+        repository.insertExternalCalls(sampleExternalCalls);
+
+        const calls = repository.findExternalCallsByNode("nonexistent");
+
+        expect(calls).toHaveLength(0);
+      });
+    });
+  });
+
+  describe("createDatabase - ディレクトリが既に存在する場合", () => {
+    it("既存のディレクトリでもDBを作成できる", () => {
+      // 2回目のcreateDatabase呼び出し（ディレクトリは既に存在）
+      const db2 = createDatabase(tempDir);
+      const repository2 = new CodeGraphRepository(db2);
+
+      // 正常に動作することを確認
+      expect(repository2.countNodes()).toBe(0);
+
+      repository2.close();
     });
   });
 });
