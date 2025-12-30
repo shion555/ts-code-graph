@@ -22,6 +22,12 @@
   "author": "shion",
   "type": "module",
   "main": "dist/cli.js",
+  "bin": {
+    "ts-code-graph": "./dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "dev": "tsx src/cli.ts",
