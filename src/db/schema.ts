@@ -82,8 +82,9 @@ function initializeSchema(db: Database.Database): void {
  * @returns Databaseインスタンス
  */
 export function createDatabase(projectPath: string): Database.Database {
-  ensureDbDirectory(projectPath);
-  const dbPath = getDbPath(projectPath);
+  const absolutePath = path.resolve(projectPath);
+  ensureDbDirectory(absolutePath);
+  const dbPath = getDbPath(absolutePath);
   const db = new Database(dbPath);
 
   // WALモードでパフォーマンス向上

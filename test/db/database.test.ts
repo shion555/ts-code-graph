@@ -31,6 +31,12 @@ describe("Database", () => {
       const dbPath = getDbPath("/project");
       expect(dbPath).toBe("/project/.ts-code-graph/index.db");
     });
+
+    it("相対パスを絶対パスに変換する", () => {
+      const dbPath = getDbPath("./project");
+      expect(path.isAbsolute(dbPath)).toBe(true);
+      expect(dbPath).toContain(".ts-code-graph/index.db");
+    });
   });
 
   describe("createDatabase", () => {
@@ -89,6 +95,11 @@ describe("Database", () => {
         expect(found[0].filePath).toBe("src/auth.ts");
         expect(found[0].lineNumber).toBe(10);
       });
+
+      it("空配列を渡しても正常に動作する", () => {
+        expect(() => repository.insertNodes([])).not.toThrow();
+        expect(repository.countNodes()).toBe(0);
+      });
     });
 
     describe("findNodeById", () => {
@@ -98,7 +109,7 @@ describe("Database", () => {
         const node = repository.findNodeById("src/auth.ts:validateUser");
 
         expect(node).toBeDefined();
-        if (!node) return;
+        if (!node) throw new Error("node should be defined");
         expect(node.name).toBe("validateUser");
       });
 
@@ -129,6 +140,10 @@ describe("Database", () => {
 
         expect(callees).toHaveLength(1);
         expect(callees[0].name).toBe("hashPassword");
+      });
+
+      it("空配列を渡しても正常に動作する", () => {
+        expect(() => repository.insertEdges([])).not.toThrow();
       });
     });
 
@@ -199,6 +214,11 @@ describe("Database", () => {
         const calls = repository.findExternalCallsByNode("nonexistent");
 
         expect(calls).toHaveLength(0);
+      });
+
+      it("空配列を渡しても正常に動作する", () => {
+        expect(() => repository.insertExternalCalls([])).not.toThrow();
+        expect(repository.countExternalCalls()).toBe(0);
       });
     });
   });
