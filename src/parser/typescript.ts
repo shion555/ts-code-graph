@@ -8,7 +8,7 @@ import {
 } from "ts-morph";
 import path from "path";
 import fs from "fs";
-import { CodeNode, CodeEdge, ParseResult } from "../types.js";
+import { CodeNode, CodeEdge, ExternalCall, ParseResult } from "../types.js";
 
 /**
  * TypeScriptプロジェクトを解析し、コードノードと呼び出し関係を抽出する
@@ -30,15 +30,33 @@ export function parseProject(projectPath: string): ParseResult {
 
   const nodes: CodeNode[] = [];
   const edges: CodeEdge[] = [];
+  const externalCalls: ExternalCall[] = [];
 
   for (const sourceFile of project.getSourceFiles()) {
     // 各ファイルからノードを抽出
     const result = extractNodesAndEdges(sourceFile, absoluteProjectPath);
     nodes.push(...result.nodes);
     edges.push(...result.edges);
+    externalCalls.push(...result.externalCalls);
   }
 
-  return { nodes, edges };
+  // 存在しないノードへの参照をexternalCallsに移動
+  const nodeIds = new Set(nodes.map((n) => n.id));
+  const validEdges: CodeEdge[] = [];
+
+  for (const edge of edges) {
+    if (nodeIds.has(edge.toNodeId)) {
+      validEdges.push(edge);
+    } else {
+      externalCalls.push({
+        fromNodeId: edge.fromNodeId,
+        callName: edge.toNodeId,
+        callText: edge.toNodeId,
+      });
+    }
+  }
+
+  return { nodes, edges: validEdges, externalCalls };
 }
 /**
  * ノード、エッジを抽出する
@@ -53,6 +71,7 @@ function extractNodesAndEdges(
 ): ParseResult {
   const nodes: CodeNode[] = [];
   const edges: CodeEdge[] = [];
+  const externalCalls: ExternalCall[] = [];
 
   const filePath = path.relative(basePath, sourceFile.getFilePath());
 
@@ -67,7 +86,9 @@ function extractNodesAndEdges(
     );
 
     nodes.push(node);
-    edges.push(...extractCalls(func, node.id, basePath));
+    const callResult = extractCalls(func, node.id, basePath);
+    edges.push(...callResult.edges);
+    externalCalls.push(...callResult.externalCalls);
   }
 
   // アロー関数を抽出
@@ -83,7 +104,9 @@ function extractNodesAndEdges(
       );
 
       nodes.push(node);
-      edges.push(...extractCalls(initializer, node.id, basePath));
+      const callResult = extractCalls(initializer, node.id, basePath);
+      edges.push(...callResult.edges);
+      externalCalls.push(...callResult.externalCalls);
     }
   }
 
@@ -94,7 +117,7 @@ function extractNodesAndEdges(
     nodes.push(createNode(name, "class", filePath, cls.getStartLineNumber()));
   }
 
-  return { nodes, edges };
+  return { nodes, edges, externalCalls };
 }
 
 /**
@@ -127,18 +150,40 @@ function createNode(
  * @param node - 解析対象のノード
  * @param fromNodeId - 呼び出し元ノードID
  * @param basePath - 基準パス
- * @returns 抽出されたCodeEdgeの配列
+ * @returns 抽出されたCodeEdgeとExternalCallの配列
  */
 function extractCalls(
   node: Node,
   fromNodeId: string,
   basePath: string
-): CodeEdge[] {
-  return node.getDescendantsOfKind(SyntaxKind.CallExpression).map((call) => ({
-    fromNodeId,
-    toNodeId: resolveCallTarget(call, basePath),
-    type: "calls" as const,
-  }));
+): { edges: CodeEdge[]; externalCalls: ExternalCall[] } {
+  const edges: CodeEdge[] = [];
+  const externalCalls: ExternalCall[] = [];
+
+  for (const call of node.getDescendantsOfKind(SyntaxKind.CallExpression)) {
+    const callText = call.getExpression().getText();
+    const resolved = resolveCallTarget(call, basePath);
+
+    if (resolved.startsWith("@external:") || resolved.startsWith("@unknown:")) {
+      const callName = resolved.startsWith("@external:")
+        ? resolved.slice("@external:".length)
+        : resolved.slice("@unknown:".length);
+
+      externalCalls.push({
+        fromNodeId,
+        callName,
+        callText,
+      });
+    } else {
+      edges.push({
+        fromNodeId,
+        toNodeId: resolved,
+        type: "calls" as const,
+      });
+    }
+  }
+
+  return { edges, externalCalls };
 }
 
 /**

@@ -39,7 +39,7 @@ program
       console.error(`Indexing: ${validatedDir}`);
 
       // プロジェクトを解析
-      const { nodes, edges } = parseProject(validatedDir);
+      const { nodes, edges, externalCalls } = parseProject(validatedDir);
 
       // DBに保存
       const db = createDatabase(validatedDir);
@@ -48,6 +48,7 @@ program
       repository.clear();
       repository.insertNodes(nodes);
       repository.insertEdges(edges);
+      repository.insertExternalCalls(externalCalls);
 
       const result = {
         success: true,
@@ -55,6 +56,7 @@ program
         stats: {
           nodes: repository.countNodes(),
           edges: repository.countEdges(),
+          externalCalls: repository.countExternalCalls(),
         },
       };
 

@@ -56,10 +56,21 @@ function initializeSchema(db: Database.Database): void {
       UNIQUE (from_node_id, to_node_id, type)
     );
 
+    CREATE TABLE IF NOT EXISTS external_calls (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      from_node_id TEXT NOT NULL,
+      call_name TEXT NOT NULL,
+      call_text TEXT,
+      FOREIGN KEY (from_node_id) REFERENCES nodes(id),
+      UNIQUE (from_node_id, call_name, call_text)
+    );
+
     CREATE INDEX IF NOT EXISTS idx_nodes_name ON nodes(name);
     CREATE INDEX IF NOT EXISTS idx_nodes_file_path ON nodes(file_path);
     CREATE INDEX IF NOT EXISTS idx_edges_from ON edges(from_node_id);
     CREATE INDEX IF NOT EXISTS idx_edges_to ON edges(to_node_id);
+    CREATE INDEX IF NOT EXISTS idx_external_calls_from ON external_calls(from_node_id);
+    CREATE INDEX IF NOT EXISTS idx_external_calls_name ON external_calls(call_name);
   `);
 }
 

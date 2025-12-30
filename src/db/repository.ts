@@ -1,5 +1,5 @@
 import Database from "better-sqlite3";
-import { CodeNode, CodeEdge } from "../types.js";
+import { CodeNode, CodeEdge, ExternalCall } from "../types.js";
 
 /**
  * データベース操作を管理するリポジトリクラス
@@ -15,6 +15,7 @@ export class CodeGraphRepository {
    * 全データを削除（再インデックス用）
    */
   clear(): void {
+    this.db.exec("DELETE FROM external_calls");
     this.db.exec("DELETE FROM edges");
     this.db.exec("DELETE FROM nodes");
   }
@@ -154,6 +155,59 @@ export class CodeGraphRepository {
    */
   countEdges(): number {
     const stmt = this.db.prepare("SELECT COUNT(*) as count FROM edges");
+    const result = stmt.get() as { count: number };
+    return result.count;
+  }
+
+  /**
+   * 外部呼び出しを一括挿入
+   *
+   * @param calls - 挿入する外部呼び出しの配列
+   */
+  insertExternalCalls(calls: ExternalCall[]): void {
+    const stmt = this.db.prepare(`
+      INSERT OR IGNORE INTO external_calls (from_node_id, call_name, call_text)
+      VALUES (@fromNodeId, @callName, @callText)
+    `);
+
+    const insertMany = this.db.transaction((calls: ExternalCall[]) => {
+      for (const call of calls) {
+        stmt.run({
+          fromNodeId: call.fromNodeId,
+          callName: call.callName,
+          callText: call.callText,
+        });
+      }
+    });
+
+    insertMany(calls);
+  }
+
+  /**
+   * 指定ノードが使用している外部呼び出しを取得
+   *
+   * @param nodeId - 対象ノードID
+   * @returns 外部呼び出しの配列
+   */
+  findExternalCallsByNode(nodeId: string): ExternalCall[] {
+    const stmt = this.db.prepare(`
+      SELECT from_node_id as fromNodeId, call_name as callName, call_text as callText
+      FROM external_calls
+      WHERE from_node_id = ?
+    `);
+
+    return stmt.all(nodeId) as ExternalCall[];
+  }
+
+  /**
+   * 全外部呼び出し数を取得
+   *
+   * @returns 外部呼び出し数
+   */
+  countExternalCalls(): number {
+    const stmt = this.db.prepare(
+      "SELECT COUNT(*) as count FROM external_calls"
+    );
     const result = stmt.get() as { count: number };
     return result.count;
   }

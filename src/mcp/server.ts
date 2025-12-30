@@ -20,7 +20,7 @@ server.tool(
   async ({ directory }) => {
     try {
       const absolutePath = path.resolve(directory);
-      const { nodes, edges } = parseProject(absolutePath);
+      const { nodes, edges, externalCalls } = parseProject(absolutePath);
 
       const db = createDatabase(absolutePath);
       const repository = new CodeGraphRepository(db);
@@ -28,10 +28,12 @@ server.tool(
       repository.clear();
       repository.insertNodes(nodes);
       repository.insertEdges(edges);
+      repository.insertExternalCalls(externalCalls);
 
       const stats = {
         nodes: repository.countNodes(),
         edges: repository.countEdges(),
+        externalCalls: repository.countExternalCalls(),
       };
 
       repository.close();
