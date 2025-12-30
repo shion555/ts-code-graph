@@ -13,6 +13,12 @@ export interface CodeEdge {
   type: "calls" | "imports" | "extends" | "implements";
 }
 
+export interface ExternalCall {
+  fromNodeId: string;
+  callName: string;
+  callText: string;
+}
+
 export interface CallGraph {
   nodes: Map<string, CodeNode>;
   edges: CodeEdge[];
@@ -21,4 +27,5 @@ export interface CallGraph {
 export interface ParseResult {
   nodes: CodeNode[];
   edges: CodeEdge[];
+  externalCalls: ExternalCall[];
 }
