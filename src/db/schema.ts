@@ -15,7 +15,8 @@ const DB_FILE = "index.db";
  * @returns DBファイルのパス
  */
 export function getDbPath(projectPath: string): string {
-  return path.join(projectPath, DB_DIR, DB_FILE);
+  const absolutePath = path.resolve(projectPath);
+  return path.join(absolutePath, DB_DIR, DB_FILE);
 }
 
 /**
@@ -26,7 +27,7 @@ export function getDbPath(projectPath: string): string {
 function ensureDbDirectory(projectPath: string): void {
   const dbDir = path.join(projectPath, DB_DIR);
   if (!fs.existsSync(dbDir)) {
-    fs.mkdirSync(dbDir, { recursive: true });
+    fs.mkdirSync(dbDir, { recursive: true, mode: 0o755 });
   }
 }
 

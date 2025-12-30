@@ -98,7 +98,8 @@ describe("Database", () => {
         const node = repository.findNodeById("src/auth.ts:validateUser");
 
         expect(node).toBeDefined();
-        expect(node?.name).toBe("validateUser");
+        if (!node) return;
+        expect(node.name).toBe("validateUser");
       });
 
       it("存在しないIDの場合undefinedを返す", () => {

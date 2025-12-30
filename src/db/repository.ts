@@ -26,6 +26,8 @@ export class CodeGraphRepository {
    * @param nodes - 挿入するノードの配列
    */
   insertNodes(nodes: CodeNode[]): void {
+    if (nodes.length === 0) return;
+
     const stmt = this.db.prepare(`
       INSERT OR REPLACE INTO nodes (id, name, type, file_path, line_number, signature)
       VALUES (@id, @name, @type, @filePath, @lineNumber, @signature)
@@ -44,7 +46,14 @@ export class CodeGraphRepository {
       }
     });
 
-    insertMany(nodes);
+    try {
+      insertMany(nodes);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(
+        `ノードの挿入に失敗しました (${nodes.length}件): ${message}`
+      );
+    }
   }
 
   /**
@@ -53,6 +62,8 @@ export class CodeGraphRepository {
    * @param edges - 挿入するエッジの配列
    */
   insertEdges(edges: CodeEdge[]): void {
+    if (edges.length === 0) return;
+
     const stmt = this.db.prepare(`
       INSERT OR IGNORE INTO edges (from_node_id, to_node_id, type)
       VALUES (@fromNodeId, @toNodeId, @type)
@@ -68,7 +79,14 @@ export class CodeGraphRepository {
       }
     });
 
-    insertMany(edges);
+    try {
+      insertMany(edges);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(
+        `エッジの挿入に失敗しました (${edges.length}件): ${message}`
+      );
+    }
   }
 
   /**
@@ -165,6 +183,8 @@ export class CodeGraphRepository {
    * @param calls - 挿入する外部呼び出しの配列
    */
   insertExternalCalls(calls: ExternalCall[]): void {
+    if (calls.length === 0) return;
+
     const stmt = this.db.prepare(`
       INSERT OR IGNORE INTO external_calls (from_node_id, call_name, call_text)
       VALUES (@fromNodeId, @callName, @callText)
@@ -180,7 +200,14 @@ export class CodeGraphRepository {
       }
     });
 
-    insertMany(calls);
+    try {
+      insertMany(calls);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(
+        `外部呼び出しの挿入に失敗しました (${calls.length}件): ${message}`
+      );
+    }
   }
 
   /**
