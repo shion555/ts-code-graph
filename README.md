@@ -199,3 +199,5 @@ npm test
 ## ライセンス
 
 MIT
+
+<!-- Test comment for Devin access verification -->
