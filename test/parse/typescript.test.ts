@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import path, { dirname } from "path";
 import { parseProject } from "../../src/parser/typescript.js";
-import { CodeNode, CodeEdge } from "../../src/types.js";
+import { CodeNode, CodeEdge, ExternalCall } from "../../src/types.js";
 import { fileURLToPath } from "url";
 import os from "os";
 
@@ -59,7 +59,7 @@ describe("parseProject", () => {
     });
 
     it("正しいノード数を抽出する", () => {
-      expect(nodes.length).toBe(21);
+      expect(nodes.length).toBe(32);
     });
   });
 
@@ -309,5 +309,137 @@ describe("型エイリアスとインターフェース", () => {
 
     expect(processFunc).toBeDefined();
     expect(processFunc!.type).toBe("function");
+  });
+});
+
+describe("動的import対応", () => {
+  let nodes: CodeNode[];
+  let edges: CodeEdge[];
+  let externalCalls: ExternalCall[];
+
+  beforeEach(() => {
+    const result = parseProject(fixturesPath);
+    nodes = result.nodes;
+    edges = result.edges;
+    externalCalls = result.externalCalls;
+  });
+
+  describe("基本的な動的import", () => {
+    it("内部モジュールへの動的importを検出する", () => {
+      const loadGreetNode = nodes.find((n) => n.name === "loadGreet");
+      expect(loadGreetNode).toBeDefined();
+
+      // loadGreet -> sample.ts内のgreet関数 へのimportsエッジ
+      const importEdge = edges.find(
+        (e) =>
+          e.fromNodeId === loadGreetNode!.id &&
+          e.toNodeId.includes(":greet") &&
+          e.type === "imports"
+      );
+      expect(importEdge).toBeDefined();
+    });
+
+    it("動的importされたモジュール内の複数の関数へのエッジを作成する", () => {
+      const loadGreetNode = nodes.find((n) => n.name === "loadGreet");
+      expect(loadGreetNode).toBeDefined();
+
+      const importEdges = edges.filter(
+        (e) => e.fromNodeId === loadGreetNode!.id && e.type === "imports"
+      );
+
+      // sample.ts内のexportされた全関数へのエッジが存在
+      expect(importEdges.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe("外部ライブラリの動的import", () => {
+    it("外部ライブラリへの動的importをexternalCallsとして記録する", () => {
+      const externalCall = externalCalls.find(
+        (ec) =>
+          ec.fromNodeId.includes(":loadExternal") && ec.callName === "path"
+      );
+      expect(externalCall).toBeDefined();
+    });
+  });
+
+  describe("エッジケース", () => {
+    it("変数を使った動的importは@unknownとして記録する", () => {
+      const unknownCall = externalCalls.find(
+        (ec) =>
+          ec.fromNodeId.includes(":loadVariable") &&
+          ec.callName === "@unknown:dynamic-import"
+      );
+      expect(unknownCall).toBeDefined();
+    });
+
+    it("条件分岐内の動的importも検出する", () => {
+      const loadConditionalNode = nodes.find(
+        (n) => n.name === "loadConditional"
+      );
+      expect(loadConditionalNode).toBeDefined();
+
+      const importEdges = edges.filter(
+        (e) => e.fromNodeId === loadConditionalNode!.id && e.type === "imports"
+      );
+
+      // ifブロック内のimportが検出される
+      expect(importEdges.length).toBeGreaterThan(0);
+    });
+  });
+});
+
+describe("re-export追跡", () => {
+  let nodes: CodeNode[];
+  let edges: CodeEdge[];
+
+  beforeEach(() => {
+    const result = parseProject(fixturesPath);
+    nodes = result.nodes;
+    edges = result.edges;
+  });
+
+  describe("静的importでのre-export", () => {
+    it("名前付きre-export経由の呼び出しを検出する", () => {
+      const useNamedReExportNode = nodes.find(
+        (n) => n.name === "useNamedReExport"
+      );
+      expect(useNamedReExportNode).toBeDefined();
+
+      // useNamedReExport -> re-export.ts:originalFunction
+      const edge = edges.find(
+        (e) =>
+          e.fromNodeId === useNamedReExportNode!.id &&
+          e.toNodeId.includes("originalFunction") &&
+          e.type === "calls"
+      );
+      expect(edge).toBeDefined();
+      // re-export.tsの定義を指す（re-export-named.tsではない）
+      expect(edge!.toNodeId).toContain("re-export.ts");
+    });
+  });
+
+  describe("動的importでのre-export", () => {
+    it("名前付きre-export経由の動的importを検出する", () => {
+      const importEdge = edges.find(
+        (e) =>
+          e.fromNodeId.includes("dynamicNamedReExport") &&
+          e.toNodeId.includes("originalFunction") &&
+          e.type === "imports"
+      );
+      expect(importEdge).toBeDefined();
+      // re-export-named.tsではなく、re-export.tsの定義を指す
+      expect(importEdge!.toNodeId).toContain("re-export.ts");
+    });
+
+    it("ワイルドカードre-export経由の動的importを検出する", () => {
+      const importEdge = edges.find(
+        (e) =>
+          e.fromNodeId.includes("dynamicWildcardReExport") &&
+          e.toNodeId.includes("originalFunction") &&
+          e.type === "imports"
+      );
+      expect(importEdge).toBeDefined();
+      expect(importEdge!.toNodeId).toContain("re-export.ts");
+    });
   });
 });
