@@ -123,4 +123,20 @@ describe("CLI", () => {
       expect(stderr).toContain("tsconfig.json");
     });
   });
+
+  describe("セキュリティ", () => {
+    it("パストラバーサル攻撃を防ぐ", () => {
+      const { stderr, exitCode } = runCli("index ../../../etc");
+
+      expect(exitCode).toBe(1);
+      expect(stderr).toContain("パストラバーサル");
+    });
+
+    it("正規化後のパストラバーサルも検出する", () => {
+      const { stderr, exitCode } = runCli("index foo/../../bar");
+
+      expect(exitCode).toBe(1);
+      expect(stderr).toContain("パストラバーサル");
+    });
+  });
 });

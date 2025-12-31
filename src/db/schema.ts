@@ -1,6 +1,7 @@
 import Database from "better-sqlite3";
 import path from "path";
 import fs from "fs";
+import { validateDbDirectory } from "../utils/pathValidator.js";
 
 /** DBディレクトリ名 */
 const DB_DIR = ".ts-code-graph";
@@ -15,7 +16,8 @@ const DB_FILE = "index.db";
  * @returns DBファイルのパス
  */
 export function getDbPath(projectPath: string): string {
-  return path.join(projectPath, DB_DIR, DB_FILE);
+  const dbDir = validateDbDirectory(projectPath, DB_DIR);
+  return path.join(dbDir, DB_FILE);
 }
 
 /**
@@ -24,7 +26,7 @@ export function getDbPath(projectPath: string): string {
  * @param projectPath - プロジェクトのルートディレクトリ
  */
 function ensureDbDirectory(projectPath: string): void {
-  const dbDir = path.join(projectPath, DB_DIR);
+  const dbDir = validateDbDirectory(projectPath, DB_DIR);
   if (!fs.existsSync(dbDir)) {
     fs.mkdirSync(dbDir, { recursive: true });
   }
