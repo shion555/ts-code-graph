@@ -227,7 +227,166 @@ function extractCalls(
     }
   }
 
+  // 動的import処理
+  for (const importKeyword of node.getDescendantsOfKind(
+    SyntaxKind.ImportKeyword
+  )) {
+    const dynamicImportResult = extractDynamicImport(
+      importKeyword,
+      fromNodeId,
+      basePath
+    );
+    edges.push(...dynamicImportResult.edges);
+    externalCalls.push(...dynamicImportResult.externalCalls);
+  }
+
   return { edges, externalCalls };
+}
+
+/**
+ * 動的import式を抽出し、importされるモジュール内の関数/クラスへのエッジを作成
+ *
+ * @param importKeyword - ImportKeywordノード
+ * @param fromNodeId - 呼び出し元ノードID
+ * @param basePath - 基準パス
+ * @returns 抽出されたCodeEdgeとExternalCallの配列
+ */
+function extractDynamicImport(
+  importKeyword: Node,
+  fromNodeId: string,
+  basePath: string
+): { edges: CodeEdge[]; externalCalls: ExternalCall[] } {
+  const edges: CodeEdge[] = [];
+  const externalCalls: ExternalCall[] = [];
+
+  const parent = importKeyword.getParent();
+  if (!Node.isCallExpression(parent)) {
+    return { edges, externalCalls };
+  }
+
+  const args = parent.getArguments();
+  if (args.length === 0) {
+    return { edges, externalCalls };
+  }
+
+  const firstArg = args[0];
+
+  // 文字列リテラルのみ処理（変数は解決不可）
+  if (!Node.isStringLiteral(firstArg)) {
+    externalCalls.push({
+      fromNodeId,
+      callName: "@unknown:dynamic-import",
+      callText: parent.getText(),
+    });
+    return { edges, externalCalls };
+  }
+
+  const modulePath = firstArg.getLiteralText();
+  const resolved = resolveDynamicImportTarget(parent, modulePath, basePath);
+
+  if (resolved.isExternal) {
+    externalCalls.push({
+      fromNodeId,
+      callName: modulePath,
+      callText: parent.getText(),
+    });
+  } else {
+    // 内部モジュールの場合、exportされた全関数/クラスへのエッジを作成
+    resolved.exportedNodes.forEach((nodeId) => {
+      edges.push({
+        fromNodeId,
+        toNodeId: nodeId,
+        type: "imports" as const,
+      });
+    });
+  }
+
+  return { edges, externalCalls };
+}
+
+/**
+ * 動的importのターゲットモジュールを解決し、exportされたノードを取得
+ *
+ * @param call - CallExpression（動的import）
+ * @param modulePath - モジュールパス
+ * @param basePath - 基準パス
+ * @returns 解決結果（外部モジュールかどうか、exportされたノードID一覧）
+ */
+function resolveDynamicImportTarget(
+  call: CallExpression,
+  modulePath: string,
+  basePath: string
+): { isExternal: boolean; exportedNodes: string[] } {
+  const sourceFile = call.getSourceFile();
+  const project = sourceFile.getProject();
+
+  try {
+    // 外部パッケージの場合（相対パスでない）
+    if (!modulePath.startsWith(".") && !modulePath.startsWith("/")) {
+      return { isExternal: true, exportedNodes: [] };
+    }
+
+    // 相対パスを絶対パスに解決
+    const currentDir = path.dirname(sourceFile.getFilePath());
+    let resolvedPath = path.resolve(currentDir, modulePath);
+
+    // .js 拡張子を .ts に変換
+    if (resolvedPath.endsWith(".js")) {
+      resolvedPath = resolvedPath.replace(/\.js$/, ".ts");
+    } else if (!resolvedPath.endsWith(".ts")) {
+      // 拡張子がない場合、.ts を追加
+      resolvedPath += ".ts";
+    }
+
+    // ソースファイルを取得
+    const targetSourceFile = project.getSourceFile(resolvedPath);
+
+    if (!targetSourceFile || targetSourceFile.isFromExternalLibrary()) {
+      return { isExternal: true, exportedNodes: [] };
+    }
+
+    // 内部モジュールのexportされた関数/クラスを収集
+    const exportedNodes: string[] = [];
+    const relativePath = path.relative(
+      basePath,
+      targetSourceFile.getFilePath()
+    );
+
+    // exportされた関数
+    for (const func of targetSourceFile.getFunctions()) {
+      if (func.isExported()) {
+        const name = func.getName() || "(anonymous)";
+        const nodeId = `${relativePath}:${func.getStartLineNumber()}:${name}`;
+        exportedNodes.push(nodeId);
+      }
+    }
+
+    // exportされたクラス
+    for (const cls of targetSourceFile.getClasses()) {
+      if (cls.isExported()) {
+        const name = cls.getName() || "(anonymous)";
+        const nodeId = `${relativePath}:${cls.getStartLineNumber()}:${name}`;
+        exportedNodes.push(nodeId);
+      }
+    }
+
+    // exportされたアロー関数（変数宣言）
+    for (const variable of targetSourceFile.getVariableDeclarations()) {
+      const initializer = variable.getInitializer();
+      if (initializer?.getKind() === SyntaxKind.ArrowFunction) {
+        const statement = variable.getVariableStatement();
+        if (statement?.isExported()) {
+          const name = variable.getName();
+          const nodeId = `${relativePath}:${variable.getStartLineNumber()}:${name}`;
+          exportedNodes.push(nodeId);
+        }
+      }
+    }
+
+    return { isExternal: false, exportedNodes };
+  } catch {
+    return { isExternal: true, exportedNodes: [] };
+  }
 }
 
 /**
