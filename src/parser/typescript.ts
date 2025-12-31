@@ -345,39 +345,14 @@ function resolveDynamicImportTarget(
       return { isExternal: true, exportedNodes: [] };
     }
 
-    // 内部モジュールのexportされた関数/クラスを収集
+    // getExportedDeclarations()を使用してre-exportも含めて収集
     const exportedNodes: string[] = [];
-    const relativePath = path.relative(
-      basePath,
-      targetSourceFile.getFilePath()
-    );
+    const exportedDeclarations = targetSourceFile.getExportedDeclarations();
 
-    // exportされた関数
-    for (const func of targetSourceFile.getFunctions()) {
-      if (func.isExported()) {
-        const name = func.getName() || "(anonymous)";
-        const nodeId = `${relativePath}:${func.getStartLineNumber()}:${name}`;
-        exportedNodes.push(nodeId);
-      }
-    }
-
-    // exportされたクラス
-    for (const cls of targetSourceFile.getClasses()) {
-      if (cls.isExported()) {
-        const name = cls.getName() || "(anonymous)";
-        const nodeId = `${relativePath}:${cls.getStartLineNumber()}:${name}`;
-        exportedNodes.push(nodeId);
-      }
-    }
-
-    // exportされたアロー関数（変数宣言）
-    for (const variable of targetSourceFile.getVariableDeclarations()) {
-      const initializer = variable.getInitializer();
-      if (initializer?.getKind() === SyntaxKind.ArrowFunction) {
-        const statement = variable.getVariableStatement();
-        if (statement?.isExported()) {
-          const name = variable.getName();
-          const nodeId = `${relativePath}:${variable.getStartLineNumber()}:${name}`;
+    for (const [, declarations] of exportedDeclarations) {
+      for (const declaration of declarations) {
+        const nodeId = resolveExportedNodeId(declaration, basePath);
+        if (nodeId) {
           exportedNodes.push(nodeId);
         }
       }
@@ -387,6 +362,54 @@ function resolveDynamicImportTarget(
   } catch {
     return { isExternal: true, exportedNodes: [] };
   }
+}
+
+/**
+ * exportされた宣言からノードIDを抽出
+ * re-exportを透過的に解決し、最終定義元のノードIDを返す
+ *
+ * @param declaration - export宣言
+ * @param basePath - 基準パス
+ * @returns ノードID、または対象外の場合はnull
+ */
+function resolveExportedNodeId(
+  declaration: Node,
+  basePath: string
+): string | null {
+  // 関数宣言
+  if (Node.isFunctionDeclaration(declaration)) {
+    const name = declaration.getName() || "(anonymous)";
+    const filePath = path.relative(
+      basePath,
+      declaration.getSourceFile().getFilePath()
+    );
+    return `${filePath}:${declaration.getStartLineNumber()}:${name}`;
+  }
+
+  // クラス宣言
+  if (Node.isClassDeclaration(declaration)) {
+    const name = declaration.getName() || "(anonymous)";
+    const filePath = path.relative(
+      basePath,
+      declaration.getSourceFile().getFilePath()
+    );
+    return `${filePath}:${declaration.getStartLineNumber()}:${name}`;
+  }
+
+  // 変数宣言（アロー関数）
+  if (Node.isVariableDeclaration(declaration)) {
+    const initializer = declaration.getInitializer();
+    if (initializer?.getKind() === SyntaxKind.ArrowFunction) {
+      const name = declaration.getName();
+      const filePath = path.relative(
+        basePath,
+        declaration.getSourceFile().getFilePath()
+      );
+      return `${filePath}:${declaration.getStartLineNumber()}:${name}`;
+    }
+  }
+
+  return null;
 }
 
 /**

@@ -54,7 +54,7 @@ describe("CLI", () => {
 
       expect(exitCode).toBe(0);
       expect(result.success).toBe(true);
-      expect(result.stats.nodes).toBe(25);
+      expect(result.stats.nodes).toBe(32);
       expect(result.stats.edges).toBeGreaterThan(0);
     });
 

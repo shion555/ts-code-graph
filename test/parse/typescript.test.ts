@@ -59,7 +59,7 @@ describe("parseProject", () => {
     });
 
     it("正しいノード数を抽出する", () => {
-      expect(nodes.length).toBe(25);
+      expect(nodes.length).toBe(32);
     });
   });
 
@@ -384,6 +384,62 @@ describe("動的import対応", () => {
 
       // ifブロック内のimportが検出される
       expect(importEdges.length).toBeGreaterThan(0);
+    });
+  });
+});
+
+describe("re-export追跡", () => {
+  let nodes: CodeNode[];
+  let edges: CodeEdge[];
+
+  beforeEach(() => {
+    const result = parseProject(fixturesPath);
+    nodes = result.nodes;
+    edges = result.edges;
+  });
+
+  describe("静的importでのre-export", () => {
+    it("名前付きre-export経由の呼び出しを検出する", () => {
+      const useNamedReExportNode = nodes.find(
+        (n) => n.name === "useNamedReExport"
+      );
+      expect(useNamedReExportNode).toBeDefined();
+
+      // useNamedReExport -> re-export.ts:originalFunction
+      const edge = edges.find(
+        (e) =>
+          e.fromNodeId === useNamedReExportNode!.id &&
+          e.toNodeId.includes("originalFunction") &&
+          e.type === "calls"
+      );
+      expect(edge).toBeDefined();
+      // re-export.tsの定義を指す（re-export-named.tsではない）
+      expect(edge!.toNodeId).toContain("re-export.ts");
+    });
+  });
+
+  describe("動的importでのre-export", () => {
+    it("名前付きre-export経由の動的importを検出する", () => {
+      const importEdge = edges.find(
+        (e) =>
+          e.fromNodeId.includes("dynamicNamedReExport") &&
+          e.toNodeId.includes("originalFunction") &&
+          e.type === "imports"
+      );
+      expect(importEdge).toBeDefined();
+      // re-export-named.tsではなく、re-export.tsの定義を指す
+      expect(importEdge!.toNodeId).toContain("re-export.ts");
+    });
+
+    it("ワイルドカードre-export経由の動的importを検出する", () => {
+      const importEdge = edges.find(
+        (e) =>
+          e.fromNodeId.includes("dynamicWildcardReExport") &&
+          e.toNodeId.includes("originalFunction") &&
+          e.type === "imports"
+      );
+      expect(importEdge).toBeDefined();
+      expect(importEdge!.toNodeId).toContain("re-export.ts");
     });
   });
 });
