@@ -110,10 +110,26 @@ function extractNodesAndEdges(
 
   // クラスを抽出
   for (const cls of sourceFile.getClasses()) {
-    const name = cls.getName() || "(anonymous)";
+    const className = cls.getName() || "(anonymous)";
     result.nodes.push(
-      createNode(name, "class", filePath, cls.getStartLineNumber())
+      createNode(className, "class", filePath, cls.getStartLineNumber())
     );
+
+    // クラスメソッドを抽出
+    for (const method of cls.getMethods()) {
+      const methodName = method.getName();
+      const partialResult = addNodeWithCalls(
+        methodName,
+        "method",
+        filePath,
+        method.getStartLineNumber(),
+        method,
+        basePath
+      );
+      result.nodes.push(...partialResult.nodes);
+      result.edges.push(...partialResult.edges);
+      result.externalCalls.push(...partialResult.externalCalls);
+    }
   }
 
   return result;

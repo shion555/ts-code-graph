@@ -13,6 +13,11 @@ export class Calculator {
   multiply(a: number, b: number): number {
     return a * b;
   }
+
+  addAndDouble(a: number, b: number): number {
+    const sum = add(a, b);
+    return sum * 2;
+  }
 }
 
 // 同一ファイル内の呼び出し
