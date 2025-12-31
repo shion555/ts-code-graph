@@ -27,10 +27,11 @@ export class SymbolicLinkError extends Error {
  * ディレクトリパスを検証し、安全な絶対パスを返す
  *
  * 検証項目:
- * 1. パストラバーサル検出 (正規化後のパスに ".." が含まれる)
- * 2. ディレクトリの存在確認
- * 3. シンボリックリンクの検出
- * 4. ディレクトリ検証
+ * 1. 絶対パスへの解決
+ * 2. パストラバーサル検出 (カレントディレクトリの外に出る場合)
+ * 3. ディレクトリの存在確認
+ * 4. シンボリックリンクの検出
+ * 5. ディレクトリ検証
  *
  * @param directory - 検証するディレクトリパス
  * @param options - オプション設定
@@ -46,23 +47,26 @@ export function validateDirectory(
 ): string {
   const { allowSymlinks = false } = options;
 
-  // 1. パスを正規化
-  const normalized = path.normalize(directory);
+  // 入力が相対パスかどうかを判定
+  const isAbsolute = path.isAbsolute(directory);
 
-  // 2. パストラバーサル検出: 正規化後のパスに ".." が含まれる場合は危険
-  if (normalized.includes("..")) {
-    throw new PathTraversalError(directory, normalized);
+  // 1. 絶対パスに解決
+  const absolutePath = path.resolve(directory);
+
+  // 2. パストラバーサル検出: 相対パスの場合のみ、カレントディレクトリの外に出るかチェック
+  if (!isAbsolute) {
+    const relativePath = path.relative(process.cwd(), absolutePath);
+    if (relativePath.startsWith("..")) {
+      throw new PathTraversalError(directory, absolutePath);
+    }
   }
 
-  // 3. 絶対パスに解決
-  const absolutePath = path.resolve(normalized);
-
-  // 4. 存在確認
+  // 3. 存在確認
   if (!fs.existsSync(absolutePath)) {
     throw new Error(`ディレクトリが存在しません: ${directory}`);
   }
 
-  // 5. シンボリックリンク検出
+  // 4. シンボリックリンク検出
   if (!allowSymlinks) {
     const lstat = fs.lstatSync(absolutePath);
     if (lstat.isSymbolicLink()) {
@@ -71,7 +75,7 @@ export function validateDirectory(
     }
   }
 
-  // 6. ディレクトリ検証（シンボリックリンクでない実体を確認）
+  // 5. ディレクトリ検証（シンボリックリンクでない実体を確認）
   const stat = fs.statSync(absolutePath);
   if (!stat.isDirectory()) {
     throw new Error(`ディレクトリではありません: ${directory}`);
