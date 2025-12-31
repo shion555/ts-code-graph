@@ -135,7 +135,7 @@ function createNode(
   lineNumber: number
 ): CodeNode {
   return {
-    id: `${filePath}:${name}`,
+    id: `${filePath}:${lineNumber}:${name}`,
     name,
     type,
     filePath,
@@ -263,5 +263,6 @@ function resolveCallTarget(call: CallExpression, basePath: string): string {
     return `@external:${callText}`;
   }
 
-  return `${relativePath}:${def.getName()}`;
+  const lineNumber = def.getNode()?.getStartLineNumber() ?? 0;
+  return `${relativePath}:${lineNumber}:${def.getName()}`;
 }
