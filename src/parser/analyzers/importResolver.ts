@@ -104,15 +104,28 @@ export function resolveModulePath(
 
 /**
  * ソースファイルからexportされたノードIDを収集
+ * 循環参照を防ぐため、訪問済みファイルを追跡する
  *
  * @param targetSourceFile - 対象のソースファイル
  * @param basePath - 基準パス
+ * @param visitedFiles - 訪問済みファイルパスのSet（循環参照防止用）
  * @returns exportされたノードIDの配列
  */
 export function collectExportedNodeIds(
   targetSourceFile: SourceFile,
-  basePath: string
+  basePath: string,
+  visitedFiles: Set<string> = new Set()
 ): string[] {
+  const currentFilePath = targetSourceFile.getFilePath();
+
+  // 循環参照チェック
+  if (visitedFiles.has(currentFilePath)) {
+    return [];
+  }
+
+  // 訪問済みとしてマーク
+  visitedFiles.add(currentFilePath);
+
   const exportedNodes: string[] = [];
   const exportedDeclarations = targetSourceFile.getExportedDeclarations();
 
