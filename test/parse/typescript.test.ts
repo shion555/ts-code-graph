@@ -59,14 +59,14 @@ describe("parseProject", () => {
     });
 
     it("正しいノード数を抽出する", () => {
-      expect(nodes.length).toBe(12);
+      expect(nodes.length).toBe(15);
     });
   });
 
   describe("edgesの抽出（同一ファイル内からの呼び出し）", () => {
     it("greetWithSumからgreetへの呼び出しを検出する", () => {
       const edge = findEdge(
-        "src/sample.ts:19:greetWithSum",
+        "src/sample.ts:24:greetWithSum",
         "src/sample.ts:2:greet"
       );
 
@@ -75,7 +75,7 @@ describe("parseProject", () => {
 
     it("greetWithSumからaddへの呼び出しを検出する", () => {
       const edge = findEdge(
-        "src/sample.ts:19:greetWithSum",
+        "src/sample.ts:24:greetWithSum",
         "src/sample.ts:7:add"
       );
 
@@ -97,6 +97,36 @@ describe("parseProject", () => {
       const edge = findEdge("src/caller.ts:7:calculate", "src/sample.ts:7:add");
 
       expect(edge.type).toBe("calls");
+    });
+  });
+
+  describe("クラスメソッドの抽出", () => {
+    it("通常のメソッドを抽出できる", () => {
+      const multiply = findNodeByName("multiply");
+
+      expect(multiply).toBeDefined();
+      expect(multiply.type).toBe("method");
+      expect(multiply.filePath).toBe("src/sample.ts");
+      expect(multiply.lineNumber).toBe(13);
+    });
+
+    it("匿名クラスのメソッドを抽出できる", () => {
+      const doSomething = findNodeByName("doSomething");
+
+      expect(doSomething).toBeDefined();
+      expect(doSomething.type).toBe("method");
+      expect(doSomething.filePath).toBe("src/anonymous.ts");
+    });
+
+    it("メソッドから関数への呼び出しを検出する", () => {
+      const addAndDouble = findNodeByName("addAndDouble");
+      expect(addAndDouble).toBeDefined();
+
+      // addAndDouble が add を呼び出すエッジを確認
+      const callsToAdd = edges.filter(
+        (e) => e.fromNodeId === addAndDouble.id && e.toNodeId.includes(":add")
+      );
+      expect(callsToAdd.length).toBeGreaterThan(0);
     });
   });
 });
