@@ -3,7 +3,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 import { parseProject } from "../parser/typescript.js";
 import { createDatabase, CodeGraphRepository } from "../db/index.js";
-import path from "path";
+import { validateDirectory } from "../utils/pathValidator.js";
 
 const server = new McpServer({
   name: "ts-code-graph",
@@ -19,7 +19,7 @@ server.tool(
   },
   async ({ directory }) => {
     try {
-      const absolutePath = path.resolve(directory);
+      const absolutePath = validateDirectory(directory);
       const { nodes, edges, externalCalls } = parseProject(absolutePath);
 
       const db = createDatabase(absolutePath);
@@ -78,7 +78,7 @@ server.tool(
   },
   async ({ name, directory }) => {
     try {
-      const absolutePath = path.resolve(directory || ".");
+      const absolutePath = validateDirectory(directory || ".");
       const db = createDatabase(absolutePath);
       const repository = new CodeGraphRepository(db);
 
@@ -122,7 +122,7 @@ server.tool(
   },
   async ({ name, directory }) => {
     try {
-      const absolutePath = path.resolve(directory || ".");
+      const absolutePath = validateDirectory(directory || ".");
       const db = createDatabase(absolutePath);
       const repository = new CodeGraphRepository(db);
 

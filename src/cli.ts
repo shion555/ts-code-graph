@@ -1,27 +1,8 @@
 #!/usr/bin/env node
 import { Command } from "commander";
-import * as fs from "fs";
-import * as path from "path";
 import { parseProject } from "./parser/typescript.js";
 import { createDatabase, CodeGraphRepository } from "./db/index.js";
-
-/**
- * ディレクトリパスを検証し、絶対パスを返す
- */
-function validateDirectory(directory: string): string {
-  const absolutePath = path.resolve(directory);
-
-  if (!fs.existsSync(absolutePath)) {
-    throw new Error(`ディレクトリが存在しません: ${directory}`);
-  }
-
-  const stat = fs.statSync(absolutePath);
-  if (!stat.isDirectory()) {
-    throw new Error(`ディレクトリではありません: ${directory}`);
-  }
-
-  return absolutePath;
-}
+import { validateDirectory } from "./utils/pathValidator.js";
 
 const program = new Command();
 
