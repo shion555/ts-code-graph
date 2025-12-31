@@ -6,6 +6,7 @@ import { CodeNode, CodeEdge, ExternalCall } from "../types.js";
  */
 export class CodeGraphRepository {
   private db: Database.Database;
+  private isClosed = false;
 
   constructor(db: Database.Database) {
     this.db = db;
@@ -216,6 +217,9 @@ export class CodeGraphRepository {
    * データベース接続を閉じる
    */
   close(): void {
-    this.db.close();
+    if (!this.isClosed) {
+      this.db.close();
+      this.isClosed = true;
+    }
   }
 }
