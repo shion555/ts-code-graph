@@ -1,9 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
-import { parseProject } from "../parser/typescript.js";
-import { createDatabase, CodeGraphRepository } from "../db/index.js";
-import { validateDirectory } from "../utils/pathValidator.js";
+import { indexProject, queryCodeGraph } from "../services/codeGraphService.js";
 
 const server = new McpServer({
   name: "ts-code-graph",
@@ -19,31 +17,18 @@ server.tool(
   },
   async ({ directory }) => {
     try {
-      const absolutePath = validateDirectory(directory);
-      const { nodes, edges, externalCalls } = parseProject(absolutePath);
-
-      const db = createDatabase(absolutePath);
-      const repository = new CodeGraphRepository(db);
-
-      repository.clear();
-      repository.insertNodes(nodes);
-      repository.insertEdges(edges);
-      repository.insertExternalCalls(externalCalls);
-
-      const stats = {
-        nodes: repository.countNodes(),
-        edges: repository.countEdges(),
-        externalCalls: repository.countExternalCalls(),
-      };
-
-      repository.close();
+      const result = indexProject(directory);
 
       return {
         content: [
           {
             type: "text" as const,
             text: JSON.stringify(
-              { success: true, directory: absolutePath, stats },
+              {
+                success: true,
+                directory: result.directory,
+                stats: result.stats,
+              },
               null,
               2
             ),
@@ -78,13 +63,8 @@ server.tool(
   },
   async ({ name, directory }) => {
     try {
-      const absolutePath = validateDirectory(directory || ".");
-      const db = createDatabase(absolutePath);
-      const repository = new CodeGraphRepository(db);
-
-      const nodes = repository.findNodesByName(name);
-
-      repository.close();
+      const result = queryCodeGraph(name, directory || ".");
+      const nodes = result.matches.map((match) => match.node);
 
       return {
         content: [
@@ -122,25 +102,13 @@ server.tool(
   },
   async ({ name, directory }) => {
     try {
-      const absolutePath = validateDirectory(directory || ".");
-      const db = createDatabase(absolutePath);
-      const repository = new CodeGraphRepository(db);
-
-      const nodes = repository.findNodesByName(name);
-
-      const results = nodes.map((node) => ({
-        node,
-        callers: repository.findCallers(node.id),
-        callees: repository.findCallees(node.id),
-      }));
-
-      repository.close();
+      const result = queryCodeGraph(name, directory || ".");
 
       return {
         content: [
           {
             type: "text" as const,
-            text: JSON.stringify({ results }, null, 2),
+            text: JSON.stringify({ results: result.matches }, null, 2),
           },
         ],
       };
