@@ -1,8 +1,6 @@
 #!/usr/bin/env node
 import { Command } from "commander";
-import { parseProject } from "./parser/typescript.js";
-import { createDatabase, CodeGraphRepository } from "./db/index.js";
-import { validateDirectory } from "./utils/pathValidator.js";
+import { indexProject, queryCodeGraph } from "./services/codeGraphService.js";
 
 const program = new Command();
 
@@ -15,40 +13,14 @@ program
   .command("index <directory>")
   .description("Index a TypeScript project")
   .action(async (directory: string) => {
-    let repository: CodeGraphRepository | null = null;
     try {
-      const validatedDir = validateDirectory(directory);
-      console.error(`Indexing: ${validatedDir}`);
-
-      // プロジェクトを解析
-      const { nodes, edges, externalCalls } = parseProject(validatedDir);
-
-      // DBに保存
-      const db = createDatabase(validatedDir);
-      repository = new CodeGraphRepository(db);
-
-      repository.clear();
-      repository.insertNodes(nodes);
-      repository.insertEdges(edges);
-      repository.insertExternalCalls(externalCalls);
-
-      const result = {
-        success: true,
-        directory: validatedDir,
-        stats: {
-          nodes: repository.countNodes(),
-          edges: repository.countEdges(),
-          externalCalls: repository.countExternalCalls(),
-        },
-      };
-
-      console.log(JSON.stringify(result, null, 2));
+      const result = indexProject(directory);
+      console.error(`Indexing: ${result.directory}`);
+      console.log(JSON.stringify({ success: true, ...result }, null, 2));
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       console.error(JSON.stringify({ success: false, error: message }));
       process.exit(1);
-    } finally {
-      repository?.close();
     }
   });
 
@@ -57,27 +29,13 @@ program
   .description("Query function/class relationships")
   .option("-d, --directory <path>", "Project directory", ".")
   .action(async (name: string, options: { directory: string }) => {
-    let repository: CodeGraphRepository | null = null;
     try {
-      const validatedDir = validateDirectory(options.directory);
-      const db = createDatabase(validatedDir);
-      repository = new CodeGraphRepository(db);
-
-      const nodes = repository.findNodesByName(name);
-
-      const matches = nodes.map((node) => ({
-        node,
-        callers: repository!.findCallers(node.id),
-        callees: repository!.findCallees(node.id),
-      }));
-
-      console.log(JSON.stringify({ matches }, null, 2));
+      const result = queryCodeGraph(name, options.directory);
+      console.log(JSON.stringify({ matches: result.matches }, null, 2));
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       console.error(JSON.stringify({ success: false, error: message }));
       process.exit(1);
-    } finally {
-      repository?.close();
     }
   });
 
